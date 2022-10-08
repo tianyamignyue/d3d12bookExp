@@ -31,6 +31,19 @@
 
 extern const int gNumFrameResources;
 
+#ifndef ThrowIfFailed
+#define ThrowIfFailed(x)                                              \
+{                                                                     \
+    HRESULT hr__ = (x);                                               \
+    std::wstring wfn = AnsiToWString(__FILE__);                       \
+    if(FAILED(hr__)) { throw DxException(hr__, L#x, wfn, __LINE__); } \
+}
+#endif
+
+#ifndef ReleaseCom
+#define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
+#endif
+
 inline void d3dSetDebugName(IDXGIObject* obj, const char* name)
 {
     if(obj)
@@ -157,59 +170,126 @@ struct SubmeshGeometry
 	DirectX::BoundingBox Bounds;
 };
 
+struct D3DBufferResource 
+{
+    Microsoft::WRL::ComPtr<ID3DBlob> BufferCPU = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> BufferGPU = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> BufferUploader = nullptr;
+
+    UINT ByteSize = 0;
+    UINT ByteStride = 0;
+
+    DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
+
+    void DisposeUploaders()
+    {
+        BufferUploader = nullptr;
+    }
+
+    template<class TDataType>
+    void InitIndexBuffer(TDataType* data, SIZE_T byteSize, DXGI_FORMAT indexFormat,
+        ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+    {
+        IndexFormat = indexFormat;
+        ByteSize = byteSize;
+        ThrowIfFailed(D3DCreateBlob(byteSize, &BufferCPU));
+        CopyMemory(BufferCPU->GetBufferPointer(), data, byteSize);
+        BufferGPU = d3dUtil::CreateDefaultBuffer(device,
+            cmdList, data, byteSize, BufferUploader);
+    }
+
+    template<class TDataType>
+    void InitVertexBuffer(TDataType* data, SIZE_T byteSize, UINT byteStride,
+        ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+    {
+        ByteStride = byteStride;
+        ByteSize = byteSize;
+
+        ThrowIfFailed(D3DCreateBlob(byteSize, &BufferCPU));
+        CopyMemory(BufferCPU->GetBufferPointer(), data, byteSize);
+        BufferGPU = d3dUtil::CreateDefaultBuffer(device,
+            cmdList, data, byteSize, BufferUploader);
+    }
+
+    D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
+    {
+        D3D12_VERTEX_BUFFER_VIEW vbv;
+        vbv.BufferLocation = BufferGPU->GetGPUVirtualAddress();
+        vbv.StrideInBytes = ByteStride;
+        vbv.SizeInBytes = ByteSize;
+
+        return vbv;
+    }
+
+    D3D12_INDEX_BUFFER_VIEW IndexBufferView()const
+    {
+        D3D12_INDEX_BUFFER_VIEW ibv;
+        ibv.BufferLocation = BufferGPU->GetGPUVirtualAddress();
+        ibv.Format = IndexFormat;
+        ibv.SizeInBytes = ByteSize;
+
+        return ibv;
+    }
+};
+
+
 struct MeshGeometry
 {
 	// Give it a name so we can look it up by name.
 	std::string Name;
-
-	// System memory copies.  Use Blobs because the vertex/index format can be generic.
-	// It is up to the client to cast appropriately.  
-	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
-	Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU  = nullptr;
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
-
-    // Data about the buffers.
-	UINT VertexByteStride = 0;
-	UINT VertexBufferByteSize = 0;
-	DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
-	UINT IndexBufferByteSize = 0;
 
 	// A MeshGeometry may store multiple geometries in one vertex/index buffer.
 	// Use this container to define the Submesh geometries so we can draw
 	// the Submeshes individually.
 	std::unordered_map<std::string, SubmeshGeometry> DrawArgs;
 
-	D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
-	{
-		D3D12_VERTEX_BUFFER_VIEW vbv;
-		vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();
-		vbv.StrideInBytes = VertexByteStride;
-		vbv.SizeInBytes = VertexBufferByteSize;
+    D3DBufferResource VertexBuffer;
+    D3DBufferResource ColorBuffer;
+    D3DBufferResource IndexBuffer;
 
-		return vbv;
-	}
+	// //System memory copies.  Use Blobs because the vertex/index format can be generic.
+	// //It is up to the client to cast appropriately.  
+	//Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
+	//Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU  = nullptr;
 
-	D3D12_INDEX_BUFFER_VIEW IndexBufferView()const
-	{
-		D3D12_INDEX_BUFFER_VIEW ibv;
-		ibv.BufferLocation = IndexBufferGPU->GetGPUVirtualAddress();
-		ibv.Format = IndexFormat;
-		ibv.SizeInBytes = IndexBufferByteSize;
+	//Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
+	//Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
 
-		return ibv;
-	}
+	//Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
+	//Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
 
-	// We can free this memory after we finish upload to the GPU.
-	void DisposeUploaders()
-	{
-		VertexBufferUploader = nullptr;
-		IndexBufferUploader = nullptr;
-	}
+ //   // Data about the buffers.
+	//UINT VertexByteStride = 0;
+	//UINT VertexBufferByteSize = 0;
+	//DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
+	//UINT IndexBufferByteSize = 0;
+
+	//D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
+	//{
+	//	D3D12_VERTEX_BUFFER_VIEW vbv;
+	//	vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();
+	//	vbv.StrideInBytes = VertexByteStride;
+	//	vbv.SizeInBytes = VertexBufferByteSize;
+
+	//	return vbv;
+	//}
+
+	//D3D12_INDEX_BUFFER_VIEW IndexBufferView()const
+	//{
+	//	D3D12_INDEX_BUFFER_VIEW ibv;
+	//	ibv.BufferLocation = IndexBufferGPU->GetGPUVirtualAddress();
+	//	ibv.Format = IndexFormat;
+	//	ibv.SizeInBytes = IndexBufferByteSize;
+
+	//	return ibv;
+	//}
+
+	//// We can free this memory after we finish upload to the GPU.
+	//void DisposeUploaders()
+	//{
+	//	VertexBufferUploader = nullptr;
+	//	IndexBufferUploader = nullptr;
+	//}
 };
 
 struct Light
@@ -273,16 +353,3 @@ struct Texture
 	Microsoft::WRL::ComPtr<ID3D12Resource> Resource = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> UploadHeap = nullptr;
 };
-
-#ifndef ThrowIfFailed
-#define ThrowIfFailed(x)                                              \
-{                                                                     \
-    HRESULT hr__ = (x);                                               \
-    std::wstring wfn = AnsiToWString(__FILE__);                       \
-    if(FAILED(hr__)) { throw DxException(hr__, L#x, wfn, __LINE__); } \
-}
-#endif
-
-#ifndef ReleaseCom
-#define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
-#endif
