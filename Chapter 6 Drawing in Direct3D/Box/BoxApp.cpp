@@ -29,6 +29,7 @@ struct VColor
 struct ObjectConstants
 {
     XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+    float gTime = 0;
 };
 
 class BoxApp : public D3DApp
@@ -174,6 +175,7 @@ void BoxApp::Update(const GameTimer& gt)
 	// Update the constant buffer with the latest worldViewProj matrix.
 	ObjectConstants objConstants;
     XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
+    objConstants.gTime = gt.TotalTime();
     mObjectCB->CopyData(0, objConstants);
 }
 
@@ -383,30 +385,16 @@ void BoxApp::BuildShadersAndInputLayout()
 
 void BoxApp::BuildBoxGeometry()
 {
-    //std::array<VPosition, 8> vertices =
-    //{
-    //    VPosition({ XMFLOAT3(-1.0f, -1.0f, -1.0f)}),
-    //    VPosition({ XMFLOAT3(-1.0f, +1.0f, -1.0f)}),
-    //    VPosition({ XMFLOAT3(+1.0f, +1.0f, -1.0f)}),
-    //    VPosition({ XMFLOAT3(+1.0f, -1.0f, -1.0f)}),
-    //    VPosition({ XMFLOAT3(-1.0f, -1.0f, +1.0f)}),
-    //    VPosition({ XMFLOAT3(-1.0f, +1.0f, +1.0f)}),
-    //    VPosition({ XMFLOAT3(+1.0f, +1.0f, +1.0f)}),
-    //    VPosition({ XMFLOAT3(+1.0f, -1.0f, +1.0f)}),
-    //};
-    //
-    
-    //5_13 vertices
     std::array<VPosition, 8> vertices =
     {
-        VPosition({ XMFLOAT3(-4.0f, -4.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(-3.0f, +3.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(-2.0f, -3.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(-1.0f, +2.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(+1.0f, -2.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(+2.0f, +1.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(+3.0f, -1.0f - 5, 5.0f)}),
-        VPosition({ XMFLOAT3(+4.0f, +4.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(-1.0f, -1.0f, -1.0f)}),
+        VPosition({ XMFLOAT3(-1.0f, +1.0f, -1.0f)}),
+        VPosition({ XMFLOAT3(+1.0f, +1.0f, -1.0f)}),
+        VPosition({ XMFLOAT3(+1.0f, -1.0f, -1.0f)}),
+        VPosition({ XMFLOAT3(-1.0f, -1.0f, +1.0f)}),
+        VPosition({ XMFLOAT3(-1.0f, +1.0f, +1.0f)}),
+        VPosition({ XMFLOAT3(+1.0f, +1.0f, +1.0f)}),
+        VPosition({ XMFLOAT3(+1.0f, -1.0f, +1.0f)}),
     };
 
     std::array<VColor, 8> colors =
@@ -421,44 +409,32 @@ void BoxApp::BuildBoxGeometry()
         VColor({XMFLOAT4(Colors::Magenta)}),
     };
 
-    //std::array<std::uint16_t, 8> indices =
-    //{
-    //    0,1,2,3,
-    //    4,5,6,7
-    //};
+	std::array<std::uint16_t, 36> indices =
+	{
+		// front face
+		0, 1, 2,
+		0, 2, 3,
 
-    std::array<std::uint16_t, 8> indices =
-    {
-        0,1,2,
-        4,3,5,
-    };
+		// back face
+		4, 6, 5,
+		4, 7, 6,
 
-	//std::array<std::uint16_t, 36> indices =
-	//{
-	//	// front face
-	//	0, 1, 2,
-	//	0, 2, 3,
+		// left face
+		4, 5, 1,
+		4, 1, 0,
 
-	//	// back face
-	//	4, 6, 5,
-	//	4, 7, 6,
+		// right face
+		3, 2, 6,
+		3, 6, 7,
 
-	//	// left face
-	//	4, 5, 1,
-	//	4, 1, 0,
+		// top face
+		1, 5, 6,
+		1, 6, 2,
 
-	//	// right face
-	//	3, 2, 6,
-	//	3, 6, 7,
-
-	//	// top face
-	//	1, 5, 6,
-	//	1, 6, 2,
-
-	//	// bottom face
-	//	4, 0, 3,
-	//	4, 3, 7
-	//};
+		// bottom face
+		4, 0, 3,
+		4, 3, 7
+	};
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(VPosition);
     const UINT cbByteSize = (UINT)colors.size() * sizeof(VColor);
