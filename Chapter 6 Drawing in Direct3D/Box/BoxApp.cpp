@@ -66,6 +66,7 @@ private:
 
 	std::unique_ptr<MeshGeometry> mBoxGeo = nullptr;
 
+
     ComPtr<ID3DBlob> mvsByteCode = nullptr;
     ComPtr<ID3DBlob> mpsByteCode = nullptr;
 
@@ -207,8 +208,8 @@ void BoxApp::Draw(const GameTimer& gt)
 
     D3D12_VERTEX_BUFFER_VIEW views[] = {
         mBoxGeo->VertexBuffer.VertexBufferView(),
-        mBoxGeo->ColorBuffer.VertexBufferView()};
-
+        mBoxGeo->ColorBuffer.VertexBufferView()
+    };
     mCommandList->IASetVertexBuffers(0, 2, views);
 
 	mCommandList->IASetIndexBuffer(&mBoxGeo->IndexBuffer.IndexBufferView());
@@ -216,8 +217,14 @@ void BoxApp::Draw(const GameTimer& gt)
     //mCommandList->IASetVertexBuffers(0, 1, &mBoxGeo->VertexBufferView());
     //mCommandList->IASetIndexBuffer(&mBoxGeo->IndexBufferView());
 
-    mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    
+    //mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    //mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+    //mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINESTRIP);
+    //mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+    //mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
     mCommandList->SetGraphicsRootDescriptorTable(0, mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 
     mCommandList->DrawIndexedInstanced(
@@ -376,18 +383,32 @@ void BoxApp::BuildShadersAndInputLayout()
 
 void BoxApp::BuildBoxGeometry()
 {
+    //std::array<VPosition, 8> vertices =
+    //{
+    //    VPosition({ XMFLOAT3(-1.0f, -1.0f, -1.0f)}),
+    //    VPosition({ XMFLOAT3(-1.0f, +1.0f, -1.0f)}),
+    //    VPosition({ XMFLOAT3(+1.0f, +1.0f, -1.0f)}),
+    //    VPosition({ XMFLOAT3(+1.0f, -1.0f, -1.0f)}),
+    //    VPosition({ XMFLOAT3(-1.0f, -1.0f, +1.0f)}),
+    //    VPosition({ XMFLOAT3(-1.0f, +1.0f, +1.0f)}),
+    //    VPosition({ XMFLOAT3(+1.0f, +1.0f, +1.0f)}),
+    //    VPosition({ XMFLOAT3(+1.0f, -1.0f, +1.0f)}),
+    //};
+    //
+    
+    //5_13 vertices
     std::array<VPosition, 8> vertices =
     {
-        VPosition({ XMFLOAT3(-1.0f, -1.0f, -1.0f)}),
-        VPosition({ XMFLOAT3(-1.0f, +1.0f, -1.0f)}),
-        VPosition({ XMFLOAT3(+1.0f, +1.0f, -1.0f)}),
-        VPosition({ XMFLOAT3(+1.0f, -1.0f, -1.0f)}),
-        VPosition({ XMFLOAT3(-1.0f, -1.0f, +1.0f)}),
-        VPosition({ XMFLOAT3(-1.0f, +1.0f, +1.0f)}),
-        VPosition({ XMFLOAT3(+1.0f, +1.0f, +1.0f)}),
-        VPosition({ XMFLOAT3(+1.0f, -1.0f, +1.0f)}),
+        VPosition({ XMFLOAT3(-4.0f, -4.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(-3.0f, +3.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(-2.0f, -3.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(-1.0f, +2.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(+1.0f, -2.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(+2.0f, +1.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(+3.0f, -1.0f - 5, 5.0f)}),
+        VPosition({ XMFLOAT3(+4.0f, +4.0f - 5, 5.0f)}),
     };
-    
+
     std::array<VColor, 8> colors =
     {
         VColor({XMFLOAT4(Colors::White)}),
@@ -400,32 +421,44 @@ void BoxApp::BuildBoxGeometry()
         VColor({XMFLOAT4(Colors::Magenta)}),
     };
 
-	std::array<std::uint16_t, 36> indices =
-	{
-		// front face
-		0, 1, 2,
-		0, 2, 3,
+    //std::array<std::uint16_t, 8> indices =
+    //{
+    //    0,1,2,3,
+    //    4,5,6,7
+    //};
 
-		// back face
-		4, 6, 5,
-		4, 7, 6,
+    std::array<std::uint16_t, 8> indices =
+    {
+        0,1,2,
+        4,3,5,
+    };
 
-		// left face
-		4, 5, 1,
-		4, 1, 0,
+	//std::array<std::uint16_t, 36> indices =
+	//{
+	//	// front face
+	//	0, 1, 2,
+	//	0, 2, 3,
 
-		// right face
-		3, 2, 6,
-		3, 6, 7,
+	//	// back face
+	//	4, 6, 5,
+	//	4, 7, 6,
 
-		// top face
-		1, 5, 6,
-		1, 6, 2,
+	//	// left face
+	//	4, 5, 1,
+	//	4, 1, 0,
 
-		// bottom face
-		4, 0, 3,
-		4, 3, 7
-	};
+	//	// right face
+	//	3, 2, 6,
+	//	3, 6, 7,
+
+	//	// top face
+	//	1, 5, 6,
+	//	1, 6, 2,
+
+	//	// bottom face
+	//	4, 0, 3,
+	//	4, 3, 7
+	//};
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(VPosition);
     const UINT cbByteSize = (UINT)colors.size() * sizeof(VColor);
