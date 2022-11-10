@@ -25,6 +25,7 @@ struct Vertex
 struct ObjectConstants
 {
     XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+    XMFLOAT4 gPulseColor;
     float gTime = 0;
 };
 
@@ -187,6 +188,9 @@ void BoxApp::Update(const GameTimer& gt)
 	ObjectConstants objConstants;
     XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
     objConstants.gTime = gt.TotalTime();
+
+    objConstants.gPulseColor = XMFLOAT4(1, 166/255.0f, 49 / 255.0f, 1);  //杏黄：255， 166， 49
+
     mObjectCB->CopyData(0, objConstants);
 
     ObjectConstants objConstants2;
@@ -194,6 +198,9 @@ void BoxApp::Update(const GameTimer& gt)
     auto worldViewProj2 = world2 * view * proj;
     XMStoreFloat4x4(&objConstants2.WorldViewProj, XMMatrixTranspose(worldViewProj2));
     objConstants2.gTime = gt.TotalTime();
+
+    objConstants2.gPulseColor = XMFLOAT4(188 / 255.0f, 230 / 255.0f, 114 / 255.0f, 1);  //松花色 RGB：188, 230, 114
+
     mObjectCB->CopyData(1, objConstants2);
 }
 
@@ -519,8 +526,10 @@ void BoxApp::BuildPSO()
 		mpsByteCode->GetBufferSize() 
 	};
     auto rs = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    rs.FillMode = D3D12_FILL_MODE_WIREFRAME;
-    rs.CullMode = D3D12_CULL_MODE_NONE;
+    //rs.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    //rs.CullMode = D3D12_CULL_MODE_NONE;
+    rs.FillMode = D3D12_FILL_MODE_SOLID;
+    rs.CullMode = D3D12_CULL_MODE_BACK;
 
     psoDesc.RasterizerState = rs;
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
