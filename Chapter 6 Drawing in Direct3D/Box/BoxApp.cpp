@@ -19,7 +19,7 @@ using namespace DirectX::PackedVector;
 struct Vertex
 {
     XMFLOAT3 Pos;
-    XMFLOAT4 Color;
+    XMCOLOR Color;
 };
 
 struct ObjectConstants
@@ -145,6 +145,19 @@ bool BoxApp::Initialize()
 void BoxApp::OnResize()
 {
 	D3DApp::OnResize();
+    auto halfWidth = mClientWidth / 2;
+    auto halfHeight = mClientHeight / 2;
+
+    mScreenViewport.TopLeftX += halfWidth / 2;
+    mScreenViewport.TopLeftY += halfHeight / 2;
+
+    mScreenViewport.Width = halfWidth;
+    mScreenViewport.Height = halfHeight;
+
+    mScissorRect.left = halfWidth / 2;
+    mScissorRect.top = halfHeight / 2;
+    mScissorRect.right = halfWidth * 3 / 2;
+    mScissorRect.bottom = halfHeight * 3 / 2;
 
     // The window resized, so update the aspect ratio and recompute the projection matrix.
     XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f*MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
@@ -173,14 +186,14 @@ void BoxApp::Update(const GameTimer& gt)
 	// Update the constant buffer with the latest worldViewProj matrix.
 	ObjectConstants objConstants;
     XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
-    objConstants.gTime = 0;
+    objConstants.gTime = gt.TotalTime();
     mObjectCB->CopyData(0, objConstants);
 
     ObjectConstants objConstants2;
     auto world2 = XMMatrixTranslation(3.0f, -1.0f, 0.0f);
     auto worldViewProj2 = world2 * view * proj;
     XMStoreFloat4x4(&objConstants2.WorldViewProj, XMMatrixTranspose(worldViewProj2));
-    objConstants2.gTime = 1;
+    objConstants2.gTime = gt.TotalTime();
     mObjectCB->CopyData(1, objConstants2);
 }
 
@@ -385,8 +398,8 @@ void BoxApp::BuildShadersAndInputLayout()
 
     mInputLayout =
     {
+        { "COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
 }
 
@@ -394,22 +407,22 @@ void BoxApp::BuildBoxGeometry()
 {
     std::array<Vertex, 13> vertices =
     {
-        Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White)  }),
-        Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black)  }),
-        Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red)    }),
-        Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green)  }),
-        Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue)   }),
-        Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
-        Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan)   }),
-        Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta)}),
+        Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMCOLOR(Colors::White)  }),
+        Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMCOLOR(Colors::Black)  }),
+        Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMCOLOR(Colors::Red)    }),
+        Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMCOLOR(Colors::Green)  }),
+        Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMCOLOR(Colors::Blue)   }),
+        Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMCOLOR(Colors::Yellow) }),
+        Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMCOLOR(Colors::Cyan)   }),
+        Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMCOLOR(Colors::Magenta)}),
 
         //四面体
-        Vertex({ XMFLOAT3(-1.0f, 0.0f, -1.0f), XMFLOAT4(Colors::Green)}),
-        Vertex({ XMFLOAT3(+1.0f, 0.0f, -1.0f), XMFLOAT4(Colors::Green)}),
-        Vertex({ XMFLOAT3(+1.0f, 0.0f, +1.0f), XMFLOAT4(Colors::Green)}),
-        Vertex({ XMFLOAT3(-1.0f, 0.0f, +1.0f), XMFLOAT4(Colors::Green)}),
+        Vertex({ XMFLOAT3(-1.0f, 0.0f, -1.0f), XMCOLOR(Colors::Green)}),
+        Vertex({ XMFLOAT3(+1.0f, 0.0f, -1.0f), XMCOLOR(Colors::Green)}),
+        Vertex({ XMFLOAT3(+1.0f, 0.0f, +1.0f), XMCOLOR(Colors::Green)}),
+        Vertex({ XMFLOAT3(-1.0f, 0.0f, +1.0f), XMCOLOR(Colors::Green)}),
 
-        Vertex({ XMFLOAT3(0.0f, +2.0f, 0.0f), XMFLOAT4(Colors::Red)}),
+        Vertex({ XMFLOAT3(0.0f, +2.0f, 0.0f), XMCOLOR(Colors::Red)}),
     };
 
 	std::array<std::uint16_t, 54> indices =
@@ -505,7 +518,11 @@ void BoxApp::BuildPSO()
 		reinterpret_cast<BYTE*>(mpsByteCode->GetBufferPointer()), 
 		mpsByteCode->GetBufferSize() 
 	};
-    psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    auto rs = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    rs.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    rs.CullMode = D3D12_CULL_MODE_NONE;
+
+    psoDesc.RasterizerState = rs;
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
     psoDesc.SampleMask = UINT_MAX;
