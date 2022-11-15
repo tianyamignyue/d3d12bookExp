@@ -106,6 +106,9 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <FxCompile>
+      <EntryPointName>VS</EntryPointName>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -159,6 +162,9 @@
     <ClInclude Include="..\..\Common\MathHelper.h" />
     <ClInclude Include="..\..\Common\UploadBuffer.h" />
     <ClInclude Include="FrameResource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\color.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
