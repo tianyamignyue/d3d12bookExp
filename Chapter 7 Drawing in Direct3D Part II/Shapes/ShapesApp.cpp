@@ -476,8 +476,8 @@ void ShapesApp::BuildConstantBufferViews()
 
 void ShapesApp::BuildRootSignature()
 {
-    //CD3DX12_DESCRIPTOR_RANGE cbvTable0;
-    //cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+    CD3DX12_DESCRIPTOR_RANGE cbvTable0;
+    cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 
     CD3DX12_DESCRIPTOR_RANGE cbvTable1;
     cbvTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
@@ -486,7 +486,7 @@ void ShapesApp::BuildRootSignature()
 	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 
 	// Create root CBVs.
-    slotRootParameter[0].InitAsConstants(16, 0);
+    slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
     slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
 
 	// A root signature is an array of root parameters.
@@ -529,9 +529,7 @@ void ShapesApp::BuildShapeGeometry()
     GeometryGenerator geoGen;
 	GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
-	//GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
-    GeometryGenerator::MeshData sphere = geoGen.CreateGeosphere(0.5f, 4);
-
+	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
 
 	//
@@ -796,15 +794,11 @@ void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::v
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
         // Offset to the CBV in the descriptor heap for this object and for this frame resource.
-        //UINT cbvIndex = mCurrFrameResourceIndex*(UINT)mOpaqueRitems.size() + ri->ObjCBIndex;
-        //auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
-        //cbvHandle.Offset(cbvIndex, mCbvSrvUavDescriptorSize);
+        UINT cbvIndex = mCurrFrameResourceIndex*(UINT)mOpaqueRitems.size() + ri->ObjCBIndex;
+        auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+        cbvHandle.Offset(cbvIndex, mCbvSrvUavDescriptorSize);
 
-        //cmdList->SetGraphicsRootDescriptorTable(0, cbvHandle);
-
-        //使用根常量
-        auto worldMat = ri->World;
-        cmdList->SetGraphicsRoot32BitConstants(0, sizeof(worldMat) / 4, &worldMat, 0);
+        cmdList->SetGraphicsRootDescriptorTable(0, cbvHandle);
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
