@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <DirectXMath.h>
 #include <vector>
+#include <string>
 
 class GeometryGenerator
 {
@@ -109,6 +110,11 @@ public:
 	/// Creates a quad aligned with the screen.  This is useful for postprocessing and screen effects.
 	///</summary>
     MeshData CreateQuad(float x, float y, float w, float h, float depth);
+
+	///<summary>
+	/// Creates a mesh from file, exp for hull.txt
+	///</summary>
+	MeshData CreateMeshFromFile(const std::wstring& filePathName);
 
 private:
 	void Subdivide(MeshData& meshData);

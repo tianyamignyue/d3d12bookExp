@@ -4,7 +4,7 @@
 
 #include "GeometryGenerator.h"
 #include <algorithm>
-
+#include <fstream>
 using namespace DirectX;
 
 GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
@@ -654,4 +654,50 @@ GeometryGenerator::MeshData GeometryGenerator::CreateQuad(float x, float y, floa
 	meshData.Indices32[5] = 3;
 
     return meshData;
+}
+
+GeometryGenerator::MeshData GeometryGenerator::CreateMeshFromFile(const std::wstring& filePathName)
+{
+	MeshData meshData;
+
+	std::ifstream ss(filePathName);
+
+	std::string word;
+	int vertexCount, triangleCount;
+
+	ss >> word >> vertexCount;		//VertexCount: 31076
+	ss >> word >> triangleCount;	//TriangleCount: 60339
+	
+	ss >> word >> word >> word;		//VertexList (pos, normal)
+	ss >> word;						//{
+
+	meshData.Vertices.resize(vertexCount);
+	auto indexCount = triangleCount * (size_t)3;
+	meshData.Indices32.resize(indexCount);
+
+	for (int i = 0; i < vertexCount; ++i) 
+	{
+		ss >> meshData.Vertices[i].Position.x 
+			>> meshData.Vertices[i].Position.y 
+			>> meshData.Vertices[i].Position.z;
+
+		ss >> meshData.Vertices[i].Normal.x 
+			>> meshData.Vertices[i].Normal.y 
+			>> meshData.Vertices[i].Normal.z;
+	}
+
+	ss >> word;						//}
+	ss >> word;						//TriangleList
+	ss >> word;						//{
+
+	for (size_t i = 0; i < indexCount; /*empty*/)
+	{
+		ss >> meshData.Indices32[i] 
+			>> meshData.Indices32[i + 1] 
+			>> meshData.Indices32[i + 2];
+
+		i += 3;
+	}
+									//}
+	return meshData;
 }
